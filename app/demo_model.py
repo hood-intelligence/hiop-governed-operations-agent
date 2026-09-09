@@ -109,7 +109,7 @@ class DemoOpsModel(Model):
             inv = next(p for p in parsed if p.get("application_id") or p.get("customer_id"))
             return "request_permit_authority", {
                 "application_id": inv.get("application_id") or "",
-                "amount_cents": int(inv.get("fee_cents") or inv.get("suggested_refund_cents") or 0),
+                "amount_cents": int(inv.get("fee_cents") or 0),
                 "reason": inv.get("permit_type") or "permit",
             }
 
