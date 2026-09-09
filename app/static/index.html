@@ -33,21 +33,21 @@
   <header>
     <small>HOOD INTELLIGENCE · AGENTS FOR HUMANS · PROFESSIONAL TRACK</small>
     <h1>HIOP Governed Operations Agent</h1>
-    <div class="sub">Strands clerk investigates. CRUSHIA decides. Only PERMIT executes. Permission Δ = 0.</div>
+    <div class="sub">Commercial building permits. Strands investigates. CRUSHIA decides. Only PERMIT issues. Permission Δ = 0.</div>
   </header>
   <main>
     <section class="card">
       <h2>CUSTOMER REQUEST</h2>
       <div class="row">
-        <button class="ghost" id="sPermit">$20 duplicate</button>
-        <button class="ghost" id="sApprove">$750 duplicate</button>
-        <button class="ghost" id="sDeny">Unauthorized account</button>
+        <button class="ghost" id="sPermit">$20 wall sign (OTC)</button>
+        <button class="ghost" id="sApprove">$7,600 commercial building</button>
+        <button class="ghost" id="sDeny">Wrong jurisdiction</button>
       </div>
-      <textarea id="req" placeholder="Customer says we charged them twice. Investigate and fix it."></textarea>
+      <textarea id="req" placeholder="Commercial building permit, $7,600 fee. Investigate and issue it."></textarea>
       <button class="go" id="run">RUN STRANDS CLERK</button>
       <div id="approveBox" style="display:none;margin-top:12px">
-        <div class="sub">PERMIT_WITH_APPROVAL — no money moved. Record approval, then CRUSHIA decides again.</div>
-        <button class="ok" id="approve">RECORD APPROVAL + FRESH PERMIT</button>
+        <div class="sub">PERMIT_WITH_APPROVAL — permit not issued. Building official must approve, then CRUSHIA decides again.</div>
+        <button class="ok" id="approve">BUILDING OFFICIAL APPROVES + FRESH PERMIT</button>
       </div>
     </section>
     <section class="card">
@@ -89,9 +89,8 @@
       const r = await fetch('/api/approve-and-retry', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
         decision_id: d.decision_id,
         amount_cents: d.amount_cents,
-        customer_id: inv.customer_id,
-        charge_id: inv.suggested_charge_id,
-        note: 'operator approved $750 duplicate refund'
+        application_id: inv.application_id,
+        note: 'building official approved $7,600 commercial building permit BLD-2026-08441'
       })});
       show(await r.json());
     };

@@ -1,4 +1,4 @@
-"""Demo ledger. Not live payments. In-memory duplicate-charge fixtures."""
+"""Demo building-permit registry. Not a live city system."""
 from __future__ import annotations
 
 from copy import deepcopy
@@ -6,115 +6,119 @@ from typing import Any
 
 from .hiop_adapter import TENANT_ID
 
-# Seeded duplicate charges. Unauthorized customer lives on another tenant.
 _SEED: list[dict[str, Any]] = [
     {
-        "charge_id": "ch_20a",
-        "customer_id": "cust_maya",
-        "customer_name": "Maya Chen",
+        "application_id": "BLD-2026-08441",
+        "applicant_id": "app_harborline",
+        "applicant_name": "Harborline Fabrication LLC",
         "tenant_id": TENANT_ID,
-        "amount_cents": 2000,
-        "status": "captured",
-        "note": "monthly seat",
+        "permit_type": "commercial_building",
+        "address": "1400 Industrial Way, Building C, North Harbor",
+        "occupancy": "B — Business / light manufacturing + office",
+        "scope": "8,400 sf tenant improvement; new demising walls, HVAC, and 3-phase service",
+        "valuation_cents": 38000000,
+        "fee_cents": 760000,
+        "status": "fee_due",
+        "permit_number": None,
     },
     {
-        "charge_id": "ch_20b",
-        "customer_id": "cust_maya",
-        "customer_name": "Maya Chen",
+        "application_id": "SGN-2026-01102",
+        "applicant_id": "app_harborline",
+        "applicant_name": "Harborline Fabrication LLC",
         "tenant_id": TENANT_ID,
-        "amount_cents": 2000,
-        "status": "captured",
-        "note": "duplicate monthly seat",
+        "permit_type": "wall_sign_otc",
+        "address": "1400 Industrial Way, Building C, North Harbor",
+        "occupancy": "B",
+        "scope": "24 sq ft non-illuminated wall sign",
+        "valuation_cents": 180000,
+        "fee_cents": 2000,
+        "status": "fee_due",
+        "permit_number": None,
     },
     {
-        "charge_id": "ch_750a",
-        "customer_id": "cust_jordan",
-        "customer_name": "Jordan Hale",
-        "tenant_id": TENANT_ID,
-        "amount_cents": 75000,
-        "status": "captured",
-        "note": "annual contract",
-    },
-    {
-        "charge_id": "ch_750b",
-        "customer_id": "cust_jordan",
-        "customer_name": "Jordan Hale",
-        "tenant_id": TENANT_ID,
-        "amount_cents": 75000,
-        "status": "captured",
-        "note": "duplicate annual contract",
-    },
-    {
-        "charge_id": "ch_x",
-        "customer_id": "cust_other",
-        "customer_name": "Other Tenant LLC",
-        "tenant_id": "not-hood-ops",
-        "amount_cents": 2000,
-        "status": "captured",
-        "note": "foreign tenant",
+        "application_id": "BLD-2026-99999",
+        "applicant_id": "app_riverside",
+        "applicant_name": "Riverside Holdings",
+        "tenant_id": "other-jurisdiction",
+        "permit_type": "commercial_building",
+        "address": "88 River Rd (outside North Harbor)",
+        "occupancy": "F-1",
+        "scope": "warehouse addition",
+        "valuation_cents": 12000000,
+        "fee_cents": 760000,
+        "status": "fee_due",
+        "permit_number": None,
     },
 ]
 
 
 class Ledger:
     def __init__(self):
-        self.charges = deepcopy(_SEED)
-        self.refunds: list[dict[str, Any]] = []
+        self.applications = deepcopy(_SEED)
+        self.issued: list[dict[str, Any]] = []
 
-    def find_customer(self, query: str) -> dict[str, Any] | None:
+    def find_application(self, query: str) -> dict[str, Any]:
+        exact = next((a for a in self.applications if a["application_id"] == query), None)
+        if exact:
+            return dict(exact)
         q = query.lower()
+        aid = None
         mapping = [
-            ("unauthorized", "cust_other"),
-            ("wrong account", "cust_other"),
-            ("other tenant", "cust_other"),
-            ("cust_other", "cust_other"),
-            ("jordan", "cust_jordan"),
-            ("750", "cust_jordan"),
-            ("maya", "cust_maya"),
-            ("$20", "cust_maya"),
-            (" 20", "cust_maya"),
-            ("twice", "cust_maya"),
-            ("double", "cust_maya"),
+            ("riverside", "BLD-2026-99999"),
+            ("unauthorized", "BLD-2026-99999"),
+            ("wrong jurisdiction", "BLD-2026-99999"),
+            ("outside", "BLD-2026-99999"),
+            ("sign", "SGN-2026-01102"),
+            ("otc", "SGN-2026-01102"),
+            ("$20", "SGN-2026-01102"),
+            ("7600", "BLD-2026-08441"),
+            ("7,600", "BLD-2026-08441"),
+            ("$7,600", "BLD-2026-08441"),
+            ("commercial", "BLD-2026-08441"),
+            ("building permit", "BLD-2026-08441"),
+            ("industrial way", "BLD-2026-08441"),
+            ("harborline", "BLD-2026-08441"),
+            ("bld-2026-08441", "BLD-2026-08441"),
         ]
-        cid = None
         for k, v in mapping:
             if k in q:
-                cid = v
+                aid = v
                 break
-        if cid is None:
-            cid = "cust_unknown"
-        rows = [c for c in self.charges if c["customer_id"] == cid]
-        if not rows:
+        if aid is None:
+            aid = "BLD-UNKNOWN"
+        row = next((a for a in self.applications if a["application_id"] == aid), None)
+        if not row:
             return {
-                "customer_id": cid,
-                "customer_name": None,
+                "application_id": aid,
+                "applicant_id": "unknown",
+                "applicant_name": None,
                 "tenant_id": None,
-                "charges": [],
-                "duplicate": False,
+                "permit_type": None,
+                "fee_cents": 0,
+                "status": "not_found",
             }
-        captured = [c for c in rows if c["status"] == "captured"]
-        return {
-            "customer_id": cid,
-            "customer_name": rows[0]["customer_name"],
-            "tenant_id": rows[0]["tenant_id"],
-            "charges": rows,
-            "duplicate": len(captured) >= 2,
-            "suggested_refund_cents": captured[-1]["amount_cents"] if captured else 0,
-            "suggested_charge_id": captured[-1]["charge_id"] if captured else None,
-        }
+        return dict(row)
 
-    def issue_refund(self, charge_id: str, amount_cents: int) -> dict[str, Any]:
-        charge = next((c for c in self.charges if c["charge_id"] == charge_id), None)
-        if not charge:
-            return {"ok": False, "error": "charge_not_found"}
-        if charge["status"] == "refunded":
-            return {"ok": False, "error": "already_refunded"}
-        charge["status"] = "refunded"
+    def issue_permit(self, application_id: str, amount_cents: int) -> dict[str, Any]:
+        app = next((a for a in self.applications if a["application_id"] == application_id), None)
+        if not app:
+            return {"ok": False, "error": "application_not_found"}
+        if app["status"] == "issued":
+            return {"ok": False, "error": "already_issued"}
+        if int(amount_cents) != int(app["fee_cents"]):
+            return {"ok": False, "error": "fee_mismatch"}
+        number = f"NH-{application_id}"
+        app["status"] = "issued"
+        app["permit_number"] = number
         rec = {
-            "refund_id": f"re_{charge_id}",
-            "charge_id": charge_id,
-            "amount_cents": amount_cents,
-            "status": "refunded",
+            "ok": True,
+            "permit_number": number,
+            "application_id": application_id,
+            "permit_type": app["permit_type"],
+            "address": app["address"],
+            "fee_cents": amount_cents,
+            "status": "issued",
+            "note": "Demo issuance. Not a live municipal permit.",
         }
-        self.refunds.append(rec)
-        return {"ok": True, **rec}
+        self.issued.append(rec)
+        return rec

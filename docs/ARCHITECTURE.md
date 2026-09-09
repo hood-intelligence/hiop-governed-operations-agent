@@ -24,9 +24,9 @@ flowchart LR
 
 | Case | Amount | Tenant | CRUSHIA | Dispatch |
 |---|---|---|---|---|
-| Maya duplicate seat | $20 | hood-ops | PERMIT | yes |
-| Jordan duplicate contract | $750 | hood-ops | PERMIT_WITH_APPROVAL | no, until fresh PERMIT |
-| Other Tenant LLC | $20 | foreign | DENY | no |
+| OTC wall sign | $20 | hood-ops | PERMIT | yes — issues NH-SGN-… |
+| Commercial building BLD-2026-08441 | **$7,600** | hood-ops | PERMIT_WITH_APPROVAL | no, until building official + fresh PERMIT |
+| Riverside Holdings | $7,600 | other-jurisdiction | DENY | no |
 
 ## Strands
 

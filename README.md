@@ -3,7 +3,7 @@
 New Strands Agents application for the **Agents for Humans** hackathon  
 **Track: Professional Agents** · Hood Intelligence, Corp. · 2026-09-09
 
-Strands clerk investigates a customer ops request. HIOP governs the consequential action. Only a fresh **PERMIT** executes. **PERMIT_WITH_APPROVAL never dispatches.** Permission Δ stays 0.
+Strands clerk investigates a **commercial building permit**. HIOP governs issuance. Only a fresh **PERMIT** executes. **PERMIT_WITH_APPROVAL never dispatches.** Permission Δ stays 0.
 
 This is **not** Studio Cinema Control. See [DISCLOSURE.md](DISCLOSURE.md).
 
@@ -18,13 +18,13 @@ Customer Request → Strands Agent → Narwhal → Meerkat → CRUSHIA
   → Fossil evidence
 ```
 
-| Request | CRUSHIA | Money moved? |
-|---|---|---|
-| Maya charged twice **$20** | PERMIT | yes |
-| Jordan charged twice **$750** | PERMIT_WITH_APPROVAL | no until fresh PERMIT |
-| Other Tenant LLC | DENY | no |
+| Request | Fee | CRUSHIA | Issued? |
+|---|---|---|---|
+| OTC wall sign, Harborline | **$20** | PERMIT | yes |
+| Commercial building TI BLD-2026-08441 | **$7,600** | PERMIT_WITH_APPROVAL | no until official + fresh PERMIT |
+| Riverside Holdings, wrong jurisdiction | $7,600 | DENY | no |
 
-Ledger is a **demo fixture**, not live card-network money.
+Registry is a **demo fixture**, not a live city permitting system.
 
 ## Run
 

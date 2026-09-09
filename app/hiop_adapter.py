@@ -25,7 +25,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-AUTO_PERMIT_MAX_CENTS = 2500  # $25.00 — $20 refund PERMITs; $750 requires approval
+AUTO_PERMIT_MAX_CENTS = 2500  # $25 — OTC $20 sign PERMITs; $7,600 commercial building requires approval
 ACTOR_ID = "strands-ops-agent-1"
 TENANT_ID = "hood-ops"
 
@@ -107,7 +107,7 @@ class HiopAuthority:
             outcome, reason = "DENY", "actor_identity_not_bound"
         elif not context.get("context_verified"):
             outcome, reason = "DENY", context.get("reason") or "context_unverified"
-        elif effect != "issue_refund":
+        elif effect != "issue_permit":
             outcome, reason = "DENY", "effect_not_in_policy"
         elif amount_cents <= 0:
             outcome, reason = "DENY", "non_positive_amount"

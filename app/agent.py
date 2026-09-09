@@ -29,52 +29,52 @@ def ledger() -> Ledger:
 
 
 @tool
-def investigate_customer(request_text: str) -> dict[str, Any]:
-    """Look up the customer and charges implied by the request. Read-only."""
-    found = ledger().find_customer(request_text)
-    return found
+def investigate_permit_application(request_text: str) -> dict[str, Any]:
+    """Look up the building/sign permit application. Read-only. Does not issue a permit."""
+    return ledger().find_application(request_text)
 
 
 @tool
-def request_refund_authority(
-    customer_id: str, charge_id: str, amount_cents: int, reason: str, approval_id: str = ""
+def request_permit_authority(
+    application_id: str, amount_cents: int, reason: str, approval_id: str = ""
 ) -> dict[str, Any]:
-    """Ask CRUSHIA whether this refund may execute. Does not move money."""
-    found = ledger().find_customer(customer_id)
+    """Ask CRUSHIA whether this permit may be issued. Does not print or record the permit."""
+    found = ledger().find_application(application_id)
     auth = plane().authorize_effect(
         actor_id=ACTOR_ID,
         tenant_id=TENANT_ID,
-        customer_id=customer_id,
+        customer_id=found.get("applicant_id") or application_id,
         customer_tenant=found.get("tenant_id"),
-        effect="issue_refund",
+        effect="issue_permit",
         amount_cents=int(amount_cents),
         approval_id=approval_id or None,
     )
-    auth["charge_id"] = charge_id
+    auth["application_id"] = application_id
+    auth["permit_type"] = found.get("permit_type")
     auth["reason"] = reason
     return auth
 
 
 @tool
-def record_human_approval(decision_id: str, amount_cents: int, note: str = "operator approved") -> dict[str, Any]:
+def record_human_approval(decision_id: str, amount_cents: int, note: str = "building official approved") -> dict[str, Any]:
     """Record a human approval fact. This is not a permit and does not dispatch."""
     return plane().record_approval(decision_id=decision_id, amount_cents=int(amount_cents), note=note)
 
 
 @tool
-def execute_refund(permit_token: str, charge_id: str, amount_cents: int) -> dict[str, Any]:
-    """Execute a refund only if HIOP has issued a fresh PERMIT token."""
+def execute_issue_permit(permit_token: str, application_id: str, amount_cents: int) -> dict[str, Any]:
+    """Issue the municipal permit only if HIOP has issued a fresh PERMIT token."""
 
     def _do():
-        return ledger().issue_refund(charge_id, int(amount_cents))
+        return ledger().issue_permit(application_id, int(amount_cents))
 
     return plane().execute(permit_token=permit_token, effector=_do)
 
 
-SYSTEM = """You are the HIOP Governed Operations Agent, a Strands clerk for business ops.
-Investigate first. Then request_refund_authority. Never claim you refunded unless execute_refund ran.
-PERMIT_WITH_APPROVAL means stop and wait. DENY means stop. Only execute_refund after a PERMIT token.
-You cannot increase your own authority. Permission delta is always 0.
+SYSTEM = """You are the HIOP Governed Operations Agent, a Strands clerk for a building department.
+Investigate the application first. Then request_permit_authority. Never claim a permit was issued unless execute_issue_permit ran.
+A $7,600 commercial building permit exceeds auto-issue authority and requires human approval, then a fresh CRUSHIA PERMIT.
+PERMIT_WITH_APPROVAL means stop. DENY means stop. You cannot increase your own authority. Permission delta is always 0.
 """
 
 
@@ -83,10 +83,10 @@ def build_agent() -> Agent:
         model=DemoOpsModel(),
         system_prompt=SYSTEM,
         tools=[
-            investigate_customer,
-            request_refund_authority,
+            investigate_permit_application,
+            request_permit_authority,
             record_human_approval,
-            execute_refund,
+            execute_issue_permit,
         ],
         name="hiop-governed-operations-agent",
         description="Strands operations clerk gated by HIOP CRUSHIA",
@@ -97,7 +97,7 @@ def unwrap(val: Any) -> Any:
     """Strands tool caller returns {status, content:[{text: json}]}."""
     if not isinstance(val, dict):
         return val
-    if "customer_id" in val or "decision" in val or "dispatched" in val or "approval_id" in val:
+    if "customer_id" in val or "application_id" in val or "decision" in val or "dispatched" in val or "approval_id" in val:
         return val
     content = val.get("content")
     if isinstance(content, list) and content:
@@ -115,13 +115,12 @@ def unwrap(val: Any) -> Any:
 def run_clerk(request_text: str, approval_id: str | None = None) -> dict[str, Any]:
     """End-to-end clerk path using Strands-registered tools."""
     agent = build_agent()
-    inv = unwrap(agent.tool.investigate_customer(request_text=request_text))
+    inv = unwrap(agent.tool.investigate_permit_application(request_text=request_text))
     auth = unwrap(
-        agent.tool.request_refund_authority(
-            customer_id=inv["customer_id"],
-            charge_id=inv.get("suggested_charge_id") or "",
-            amount_cents=int(inv.get("suggested_refund_cents") or 0),
-            reason="duplicate_charge",
+        agent.tool.request_permit_authority(
+            application_id=inv.get("application_id") or "",
+            amount_cents=int(inv.get("fee_cents") or 0),
+            reason=inv.get("permit_type") or "permit",
             approval_id=approval_id or "",
         )
     )
@@ -129,10 +128,10 @@ def run_clerk(request_text: str, approval_id: str | None = None) -> dict[str, An
     execution = None
     if decision.get("outcome") == "PERMIT" and decision.get("permit_token"):
         execution = unwrap(
-            agent.tool.execute_refund(
+            agent.tool.execute_issue_permit(
                 permit_token=decision["permit_token"],
-                charge_id=inv.get("suggested_charge_id") or "",
-                amount_cents=int(inv.get("suggested_refund_cents") or 0),
+                application_id=inv.get("application_id") or "",
+                amount_cents=int(inv.get("fee_cents") or 0),
             )
         )
     return {

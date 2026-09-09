@@ -98,20 +98,19 @@ class DemoOpsModel(Model):
             # names inferred from order
             used.append(m.get("name"))
 
-        has_invest = any(isinstance(p, dict) and p.get("customer_id") for p in parsed)
+        has_invest = any(isinstance(p, dict) and (p.get("application_id") or p.get("customer_id")) for p in parsed)
         has_auth = any(isinstance(p, dict) and p.get("decision") for p in parsed)
         last = parsed[-1] if parsed else {}
 
-        if not has_invest and "investigate_customer" in names:
-            return "investigate_customer", {"request_text": user}
+        if not has_invest and "investigate_permit_application" in names:
+            return "investigate_permit_application", {"request_text": user}
 
-        if has_invest and not has_auth and "request_refund_authority" in names:
-            inv = next(p for p in parsed if p.get("customer_id"))
-            return "request_refund_authority", {
-                "customer_id": inv.get("customer_id"),
-                "charge_id": inv.get("suggested_charge_id") or "",
-                "amount_cents": int(inv.get("suggested_refund_cents") or 0),
-                "reason": "duplicate_charge",
+        if has_invest and not has_auth and "request_permit_authority" in names:
+            inv = next(p for p in parsed if p.get("application_id") or p.get("customer_id"))
+            return "request_permit_authority", {
+                "application_id": inv.get("application_id") or "",
+                "amount_cents": int(inv.get("fee_cents") or inv.get("suggested_refund_cents") or 0),
+                "reason": inv.get("permit_type") or "permit",
             }
 
         if has_auth:
@@ -123,13 +122,13 @@ class DemoOpsModel(Model):
                         break
             outcome = (decision or {}).get("outcome")
             token = (decision or {}).get("permit_token")
-            if outcome == "PERMIT" and token and "execute_refund" in names:
+            if outcome == "PERMIT" and token and "execute_issue_permit" in names:
                 already_exec = any(isinstance(p, dict) and p.get("dispatched") for p in parsed)
                 if not already_exec:
-                    return "execute_refund", {"permit_token": token}
+                    return "execute_issue_permit", {"permit_token": token, "application_id": "", "amount_cents": 0}
             if outcome == "PERMIT_WITH_APPROVAL":
                 return None, {
-                    "text": "CRUSHIA returned PERMIT_WITH_APPROVAL. No dispatch. Waiting for human approval, then a fresh CRUSHIA decision."
+                    "text": "CRUSHIA returned PERMIT_WITH_APPROVAL. Commercial building permit not issued. Waiting for building official, then a fresh CRUSHIA decision."
                 }
             if outcome == "DENY":
                 return None, {"text": "CRUSHIA DENY. No refund will be issued."}

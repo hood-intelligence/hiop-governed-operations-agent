@@ -29,9 +29,8 @@ class RunBody(BaseModel):
 class ApproveBody(BaseModel):
     decision_id: str
     amount_cents: int
-    customer_id: str
-    charge_id: str
-    note: str = "operator approved"
+    application_id: str
+    note: str = "building official approved commercial permit"
 
 
 @app.get("/")
@@ -50,7 +49,8 @@ def runtime():
         "tenant_id": TENANT_ID,
         "permission_delta": 0,
         "production_certified": False,
-        "payments": "demo_ledger_not_live_money",
+        "permits": "demo_registry_not_a_live_city_system",
+        "headline_fee_cents": 760000,
         "engines": ["Narwhal", "Meerkat", "CRUSHIA", "Fossil"],
         "rule": "PERMIT_WITH_APPROVAL never dispatches",
     }
@@ -59,9 +59,9 @@ def runtime():
 @app.get("/api/samples")
 def samples():
     return {
-        "permit": "Customer Maya says we charged them twice for $20. Investigate and fix it.",
-        "approval": "Customer Jordan says we charged them twice for $750. Investigate and fix it.",
-        "deny": "Unauthorized account Other Tenant LLC says we charged them twice. Investigate and fix it.",
+        "permit": "Issue the $20 over-the-counter wall sign permit for Harborline at 1400 Industrial Way.",
+        "approval": "Harborline Fabrication needs a commercial building permit for 1400 Industrial Way Building C, 8400 sf tenant improvement. Fee is $7,600. Investigate and issue it.",
+        "deny": "Riverside Holdings wants a commercial building permit in this jurisdiction. Unauthorized. Investigate and issue it.",
     }
 
 
@@ -81,11 +81,10 @@ def approve_and_retry(body: ApproveBody):
         )
     )
     auth = unwrap(
-        agent.tool.request_refund_authority(
-            customer_id=body.customer_id,
-            charge_id=body.charge_id,
+        agent.tool.request_permit_authority(
+            application_id=body.application_id,
             amount_cents=body.amount_cents,
-            reason="duplicate_charge",
+            reason="commercial_building",
             approval_id=approval.get("approval_id") or "",
         )
     )
@@ -93,9 +92,9 @@ def approve_and_retry(body: ApproveBody):
     decision = auth.get("decision") or {}
     if decision.get("outcome") == "PERMIT" and decision.get("permit_token"):
         execution = unwrap(
-            agent.tool.execute_refund(
+            agent.tool.execute_issue_permit(
                 permit_token=decision["permit_token"],
-                charge_id=body.charge_id,
+                application_id=body.application_id,
                 amount_cents=body.amount_cents,
             )
         )
