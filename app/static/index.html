@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>HIOP Governed Operations Agent</title>
+  <style>
+    :root { --bg:#020508; --ink:#eaf7ff; --muted:#86a1b3; --cyan:#43d6ff; --green:#42ffc0; --amber:#ffbd54; --red:#ff6b7a; --line:#1a3a4a; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.45 Segoe UI, system-ui, sans-serif; }
+    header { padding:22px 28px 8px; border-bottom:1px solid var(--line); }
+    header small { color:var(--cyan); letter-spacing:.14em; font-size:11px; }
+    h1 { margin:6px 0 4px; font-size:28px; }
+    .sub { color:var(--muted); }
+    main { display:grid; grid-template-columns: 1.1fr .9fr; gap:18px; padding:22px 28px 40px; }
+    .card { border:1px solid var(--line); border-radius:12px; padding:16px; background:#071016; }
+    .card h2 { margin:0 0 12px; font-size:13px; letter-spacing:.12em; color:var(--cyan); }
+    button { cursor:pointer; border:0; border-radius:8px; padding:10px 14px; font-weight:700; }
+    .go { background:var(--cyan); color:#021018; width:100%; margin-top:10px; }
+    .ghost { background:transparent; color:var(--ink); border:1px solid var(--line); margin:4px 4px 0 0; }
+    .ok { background:var(--green); color:#021018; }
+    textarea { width:100%; min-height:90px; background:#02080c; color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:10px; }
+    .pill { display:inline-block; padding:3px 8px; border-radius:99px; font-size:12px; font-weight:700; }
+    .PERMIT { background:#123; color:var(--green); }
+    .DENY { background:#311; color:var(--red); }
+    .PERMIT_WITH_APPROVAL { background:#332; color:var(--amber); }
+    pre { white-space:pre-wrap; font-size:12px; color:#c9e7f7; margin:0; max-height:420px; overflow:auto; }
+    .row { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0; }
+    footer { padding:0 28px 28px; color:var(--muted); font-size:12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <small>HOOD INTELLIGENCE · AGENTS FOR HUMANS · PROFESSIONAL TRACK</small>
+    <h1>HIOP Governed Operations Agent</h1>
+    <div class="sub">Strands clerk investigates. CRUSHIA decides. Only PERMIT executes. Permission Δ = 0.</div>
+  </header>
+  <main>
+    <section class="card">
+      <h2>CUSTOMER REQUEST</h2>
+      <div class="row">
+        <button class="ghost" id="sPermit">$20 duplicate</button>
+        <button class="ghost" id="sApprove">$750 duplicate</button>
+        <button class="ghost" id="sDeny">Unauthorized account</button>
+      </div>
+      <textarea id="req" placeholder="Customer says we charged them twice. Investigate and fix it."></textarea>
+      <button class="go" id="run">RUN STRANDS CLERK</button>
+      <div id="approveBox" style="display:none;margin-top:12px">
+        <div class="sub">PERMIT_WITH_APPROVAL — no money moved. Record approval, then CRUSHIA decides again.</div>
+        <button class="ok" id="approve">RECORD APPROVAL + FRESH PERMIT</button>
+      </div>
+    </section>
+    <section class="card">
+      <h2>AUTHORITY + EVIDENCE</h2>
+      <div id="status" class="sub">Idle. Demo ledger — not live payments.</div>
+      <pre id="out">{}</pre>
+    </section>
+  </main>
+  <footer>Patents pending · Hood Intelligence, Corp. · Kenneth Wyche · founder@hoodintelligence.ai · This application is new for the 2026 Agents for Humans hackathon. HIOP engines are disclosed pre-existing components. production_certified = false.</footer>
+  <script>
+    const req = document.getElementById('req');
+    const out = document.getElementById('out');
+    const status = document.getElementById('status');
+    const approveBox = document.getElementById('approveBox');
+    let last = null;
+    async function samples() {
+      const s = await (await fetch('/api/samples')).json();
+      document.getElementById('sPermit').onclick = () => req.value = s.permit;
+      document.getElementById('sApprove').onclick = () => req.value = s.approval;
+      document.getElementById('sDeny').onclick = () => req.value = s.deny;
+      req.value = s.permit;
+    }
+    function show(obj) {
+      last = obj;
+      out.textContent = JSON.stringify(obj, null, 2);
+      const d = (obj.authority && obj.authority.decision) || (obj.fresh_authority && obj.fresh_authority.decision) || {};
+      const oc = d.outcome || '—';
+      status.innerHTML = 'Outcome <span class="pill '+oc+'">'+oc+'</span> · dispatched=' + !!(obj.dispatched || (obj.execution && obj.execution.dispatched)) + ' · permission Δ 0';
+      approveBox.style.display = oc === 'PERMIT_WITH_APPROVAL' ? 'block' : 'none';
+    }
+    document.getElementById('run').onclick = async () => {
+      status.textContent = 'Strands clerk running…';
+      const r = await fetch('/api/run', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({request: req.value})});
+      show(await r.json());
+    };
+    document.getElementById('approve').onclick = async () => {
+      const d = last.authority.decision;
+      const inv = last.investigation;
+      const r = await fetch('/api/approve-and-retry', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+        decision_id: d.decision_id,
+        amount_cents: d.amount_cents,
+        customer_id: inv.customer_id,
+        charge_id: inv.suggested_charge_id,
+        note: 'operator approved $750 duplicate refund'
+      })});
+      show(await r.json());
+    };
+    samples();
+  </script>
+</body>
+</html>
