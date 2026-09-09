@@ -55,7 +55,11 @@ def test_approval_then_fresh_crushia_issues_commercial_permit(world):
     agent = build_agent()
     approval = unwrap(
         agent.tool.record_human_approval(
-            decision_id=d["decision_id"], amount_cents=760000, note="building official approved"
+            decision_id=d["decision_id"],
+            amount_cents=760000,
+            note="building official approved",
+            application_id="BLD-2026-08441",
+            customer_id="app_harborline",
         )
     )
     auth = unwrap(

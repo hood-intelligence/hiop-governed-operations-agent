@@ -77,7 +77,10 @@ def approve_and_retry(body: ApproveBody):
     agent = build_agent()
     approval = unwrap(
         agent.tool.record_human_approval(
-            decision_id=body.decision_id, amount_cents=body.amount_cents, note=body.note
+            decision_id=body.decision_id,
+            amount_cents=body.amount_cents,
+            note=body.note,
+            application_id=body.application_id,
         )
     )
     auth = unwrap(

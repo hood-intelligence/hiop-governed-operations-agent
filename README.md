@@ -26,6 +26,8 @@ Customer Request → Strands Agent → Narwhal → Meerkat → CRUSHIA
 
 Registry is a **demo fixture**, not a live city permitting system.
 
+Approval is bound to the exact application + amount + effect. A PERMIT token is bound to that same fingerprint. Wrong application, wrong amount, replay, or using an approval as a permit does **not** dispatch.
+
 ## Run
 
 ```bash

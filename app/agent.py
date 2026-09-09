@@ -40,25 +40,45 @@ def request_permit_authority(
 ) -> dict[str, Any]:
     """Ask CRUSHIA whether this permit may be issued. Does not print or record the permit."""
     found = ledger().find_application(application_id)
+    aid = found.get("application_id") or application_id
     auth = plane().authorize_effect(
         actor_id=ACTOR_ID,
         tenant_id=TENANT_ID,
-        customer_id=found.get("applicant_id") or application_id,
+        customer_id=found.get("applicant_id") or aid,
         customer_tenant=found.get("tenant_id"),
         effect="issue_permit",
         amount_cents=int(amount_cents),
         approval_id=approval_id or None,
+        application_id=aid,
     )
-    auth["application_id"] = application_id
+    auth["application_id"] = aid
     auth["permit_type"] = found.get("permit_type")
     auth["reason"] = reason
     return auth
 
 
 @tool
-def record_human_approval(decision_id: str, amount_cents: int, note: str = "building official approved") -> dict[str, Any]:
+def record_human_approval(
+    decision_id: str,
+    amount_cents: int,
+    note: str = "building official approved",
+    application_id: str = "",
+    customer_id: str = "",
+) -> dict[str, Any]:
     """Record a human approval fact. This is not a permit and does not dispatch."""
-    return plane().record_approval(decision_id=decision_id, amount_cents=int(amount_cents), note=note)
+    cid = customer_id
+    if application_id and not cid:
+        found = ledger().find_application(application_id)
+        cid = found.get("applicant_id") or ""
+        if not application_id or application_id != found.get("application_id"):
+            application_id = found.get("application_id") or application_id
+    return plane().record_approval(
+        decision_id=decision_id,
+        amount_cents=int(amount_cents),
+        note=note,
+        application_id=application_id,
+        customer_id=cid,
+    )
 
 
 @tool
@@ -68,7 +88,12 @@ def execute_issue_permit(permit_token: str, application_id: str, amount_cents: i
     def _do():
         return ledger().issue_permit(application_id, int(amount_cents))
 
-    return plane().execute(permit_token=permit_token, effector=_do)
+    return plane().execute(
+        permit_token=permit_token,
+        effector=_do,
+        application_id=application_id,
+        amount_cents=int(amount_cents),
+    )
 
 
 SYSTEM = """You are the HIOP Governed Operations Agent, a Strands clerk for a building department.

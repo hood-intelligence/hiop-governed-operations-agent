@@ -38,6 +38,25 @@ def _rid(prefix: str) -> str:
     return f"{prefix}_{uuid.uuid4().hex[:12]}"
 
 
+def bind_fingerprint(
+    *,
+    tenant_id: str,
+    application_id: str,
+    customer_id: str,
+    effect: str,
+    amount_cents: int,
+) -> str:
+    body = {
+        "tenant_id": tenant_id,
+        "application_id": application_id,
+        "customer_id": customer_id,
+        "effect": effect,
+        "amount_cents": int(amount_cents),
+    }
+    line = json.dumps(body, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(line.encode("utf-8")).hexdigest()
+
+
 class Fossil:
     def __init__(self, path: Path):
         self.path = Path(path)
@@ -102,7 +121,18 @@ class HiopAuthority:
         identity: dict[str, Any],
         context: dict[str, Any],
         approval_id: str | None = None,
+        request_fingerprint: str | None = None,
+        application_id: str = "",
+        tenant_id: str = TENANT_ID,
+        customer_id: str = "",
     ) -> dict[str, Any]:
+        fp = request_fingerprint or bind_fingerprint(
+            tenant_id=tenant_id,
+            application_id=application_id,
+            customer_id=customer_id,
+            effect=effect,
+            amount_cents=amount_cents,
+        )
         if not identity.get("identity_bound"):
             outcome, reason = "DENY", "actor_identity_not_bound"
         elif not context.get("context_verified"):
@@ -111,13 +141,20 @@ class HiopAuthority:
             outcome, reason = "DENY", "effect_not_in_policy"
         elif amount_cents <= 0:
             outcome, reason = "DENY", "non_positive_amount"
+        elif approval_id:
+            rec = self._approvals.get(approval_id)
+            if not rec:
+                outcome, reason = "DENY", "approval_unknown"
+            elif rec.get("spent"):
+                outcome, reason = "DENY", "approval_already_used"
+            elif rec.get("request_fingerprint") != fp:
+                outcome, reason = "DENY", "approval_fingerprint_mismatch"
+            else:
+                outcome, reason = "PERMIT", "fresh_permit_after_recorded_approval"
         elif amount_cents <= AUTO_PERMIT_MAX_CENTS:
             outcome, reason = "PERMIT", "within_auto_permit_ceiling"
         else:
-            if approval_id and approval_id in self._approvals:
-                outcome, reason = "PERMIT", "fresh_permit_after_recorded_approval"
-            else:
-                outcome, reason = "PERMIT_WITH_APPROVAL", "amount_exceeds_auto_permit_ceiling"
+            outcome, reason = "PERMIT_WITH_APPROVAL", "amount_exceeds_auto_permit_ceiling"
 
         decision_id = _rid("crushia")
         decision = {
@@ -125,9 +162,11 @@ class HiopAuthority:
             "decision_id": decision_id,
             "effect": effect,
             "amount_cents": amount_cents,
+            "application_id": application_id,
             "outcome": outcome,
             "reason": reason,
             "approval_id": approval_id,
+            "request_fingerprint": fp,
             "dispatches": outcome == "PERMIT",
             "permission_delta": 0,
         }
@@ -137,40 +176,98 @@ class HiopAuthority:
                 "token": token,
                 "decision_id": decision_id,
                 "effect": effect,
-                "amount_cents": amount_cents,
+                "amount_cents": int(amount_cents),
+                "application_id": application_id,
+                "customer_id": customer_id,
+                "tenant_id": tenant_id,
+                "request_fingerprint": fp,
                 "spent": False,
             }
             decision["permit_token"] = token
+            if approval_id and approval_id in self._approvals:
+                self._approvals[approval_id]["spent"] = True
         self.fossil.write({"kind": "authority_decision", **decision})
         return decision
 
-    def record_approval(self, *, decision_id: str, amount_cents: int, note: str) -> dict[str, Any]:
+    def record_approval(
+        self,
+        *,
+        decision_id: str,
+        amount_cents: int,
+        note: str,
+        application_id: str = "",
+        customer_id: str = "",
+        effect: str = "issue_permit",
+        tenant_id: str = TENANT_ID,
+    ) -> dict[str, Any]:
         approval_id = _rid("approval")
+        fp = bind_fingerprint(
+            tenant_id=tenant_id,
+            application_id=application_id,
+            customer_id=customer_id,
+            effect=effect,
+            amount_cents=amount_cents,
+        )
         rec = {
             "kind": "human_approval",
             "approval_id": approval_id,
             "prior_decision_id": decision_id,
-            "amount_cents": amount_cents,
+            "amount_cents": int(amount_cents),
+            "application_id": application_id,
+            "customer_id": customer_id,
+            "effect": effect,
+            "tenant_id": tenant_id,
+            "request_fingerprint": fp,
             "note": note,
             "unlimited_authority": False,
+            "spent": False,
         }
         self._approvals[approval_id] = rec
         return self.fossil.write(rec)
 
-    def execute(self, *, permit_token: str, effector) -> dict[str, Any]:
-        """PERMIT-only. Token is spent before the effector runs."""
+    def execute(
+        self,
+        *,
+        permit_token: str,
+        effector,
+        application_id: str = "",
+        amount_cents: int | None = None,
+    ) -> dict[str, Any]:
+        """PERMIT-only. Token must match application + amount. Spent only on match."""
         with self._lock:
             tok = self._permits.get(permit_token)
             if not tok:
                 rec = self.fossil.write(
                     {"kind": "execution_refused", "gate": "G1", "reason": "permit_token_unknown"}
                 )
-                return {"ok": False, "dispatched": False, "receipt": rec}
+                return {"ok": False, "dispatched": False, "error_code": "permit_token_unknown", "receipt": rec}
             if tok["spent"]:
                 rec = self.fossil.write(
                     {"kind": "execution_refused", "gate": "G3", "reason": "permit_token_already_spent"}
                 )
-                return {"ok": False, "dispatched": False, "receipt": rec}
+                return {"ok": False, "dispatched": False, "error_code": "permit_token_already_spent", "receipt": rec}
+            presented = bind_fingerprint(
+                tenant_id=tok.get("tenant_id") or TENANT_ID,
+                application_id=application_id,
+                customer_id=tok.get("customer_id") or "",
+                effect=tok["effect"],
+                amount_cents=int(amount_cents if amount_cents is not None else -1),
+            )
+            if presented != tok.get("request_fingerprint"):
+                rec = self.fossil.write(
+                    {
+                        "kind": "execution_refused",
+                        "gate": "G2",
+                        "reason": "permit_fingerprint_mismatch",
+                        "application_id": application_id,
+                    }
+                )
+                return {
+                    "ok": False,
+                    "dispatched": False,
+                    "error_code": "permit_fingerprint_mismatch",
+                    "receipt": rec,
+                }
             tok["spent"] = True
             self._spent.add(permit_token)
 
@@ -182,6 +279,8 @@ class HiopAuthority:
                 "decision_id": tok["decision_id"],
                 "effect": tok["effect"],
                 "amount_cents": tok["amount_cents"],
+                "application_id": tok["application_id"],
+                "request_fingerprint": tok["request_fingerprint"],
                 "dispatched": True,
                 "result": result,
             }
@@ -198,10 +297,18 @@ class HiopAuthority:
         effect: str,
         amount_cents: int,
         approval_id: str | None = None,
+        application_id: str = "",
     ) -> dict[str, Any]:
         identity = self.narwhal(actor_id)
         context = self.meerkat(
             tenant_id=tenant_id, customer_id=customer_id, customer_tenant=customer_tenant
+        )
+        fp = bind_fingerprint(
+            tenant_id=tenant_id,
+            application_id=application_id,
+            customer_id=customer_id,
+            effect=effect,
+            amount_cents=amount_cents,
         )
         decision = self.crushia(
             effect=effect,
@@ -209,10 +316,16 @@ class HiopAuthority:
             identity=identity,
             context=context,
             approval_id=approval_id,
+            request_fingerprint=fp,
+            application_id=application_id,
+            tenant_id=tenant_id,
+            customer_id=customer_id,
         )
         return {
             "identity": identity,
             "context": context,
             "decision": decision,
+            "application_id": application_id,
+            "request_fingerprint": fp,
             "permission_delta": 0,
         }

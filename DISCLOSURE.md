@@ -32,6 +32,8 @@ Hard rules copied from HIOP P1 effect-authority (not invented here):
 - After approval, CRUSHIA must issue a **fresh** decision
 - Only a fresh `PERMIT` may execute
 - Permission delta remains **0**
+- Approval is bound to the exact application + amount + effect (fingerprint). It is not reusable on another target.
+- A PERMIT token is bound to that same fingerprint. Wrong application, wrong amount, or replay does not dispatch.
 
 Source-of-truth references (local Hood tree, not this repo):
 

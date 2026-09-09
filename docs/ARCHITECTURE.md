@@ -32,3 +32,8 @@ flowchart LR
 
 The clerk is a `strands.Agent` with four tools. Tools never issue a permit except
 `execute_issue_permit`, which can only run with a HIOP permit token.
+
+A PERMIT token and a human approval are bound to
+`tenant + application_id + customer_id + effect + amount_cents` (SHA-256 fingerprint).
+Cross-target reuse, amount mismatch, and replay are refused and Fossilized.
+`production_certified` remains false.

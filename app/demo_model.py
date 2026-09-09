@@ -125,7 +125,12 @@ class DemoOpsModel(Model):
             if outcome == "PERMIT" and token and "execute_issue_permit" in names:
                 already_exec = any(isinstance(p, dict) and p.get("dispatched") for p in parsed)
                 if not already_exec:
-                    return "execute_issue_permit", {"permit_token": token, "application_id": "", "amount_cents": 0}
+                    inv = next((p for p in parsed if isinstance(p, dict) and p.get("application_id")), {})
+                    return "execute_issue_permit", {
+                        "permit_token": token,
+                        "application_id": inv.get("application_id") or last.get("application_id") or "",
+                        "amount_cents": int(inv.get("fee_cents") or last.get("decision", {}).get("amount_cents") or 0),
+                    }
             if outcome == "PERMIT_WITH_APPROVAL":
                 return None, {
                     "text": "CRUSHIA returned PERMIT_WITH_APPROVAL. Commercial building permit not issued. Waiting for building official, then a fresh CRUSHIA decision."

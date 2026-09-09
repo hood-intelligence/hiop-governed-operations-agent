@@ -1,9 +1,9 @@
 .venv/
-venv/
 __pycache__/
 *.pyc
-.env
 runtime/
+runtime-tmp/
+runtime-tmp-smoke/
 .pytest_cache/
-*.egg-info/
-.DS_Store
+*.mp4
+_frames/
