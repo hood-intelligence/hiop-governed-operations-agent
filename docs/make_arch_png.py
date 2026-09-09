@@ -17,7 +17,7 @@ boxes = [
     (500, 80, 680, 170, "Narwhal\nidentity"),
     (500, 190, 680, 280, "Meerkat\ncontext"),
     (720, 140, 940, 230, "CRUSHIA\nauthority"),
-    (980, 40, 1220, 120, "PERMIT\nexecute refund"),
+    (980, 40, 1220, 120, "PERMIT\nissue permit"),
     (980, 140, 1220, 220, "PERMIT_WITH_\nAPPROVAL  no dispatch"),
     (980, 240, 1220, 320, "DENY\nno dispatch"),
     (500, 360, 940, 450, "Human approval = fact, not a permit\nFresh CRUSHIA required"),

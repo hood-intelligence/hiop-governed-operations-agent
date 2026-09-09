@@ -3,9 +3,9 @@
 ```mermaid
 flowchart LR
   C[Customer request] --> S[Strands operations clerk]
-  S --> I[investigate_customer]
-  I --> L[Demo ledger]
-  S --> A[request_refund_authority]
+  S --> I[investigate_permit_application]
+  I --> L[Demo permit registry]
+  S --> A[request_permit_authority]
   A --> N[Narwhal identity]
   N --> M[Meerkat context]
   M --> CR[CRUSHIA effect authority]
@@ -14,7 +14,7 @@ flowchart LR
   CR -->|DENY| X[No dispatch]
   H --> CR2[Fresh CRUSHIA]
   CR2 -->|PERMIT| G
-  G --> E[issue_refund]
+  G --> E[issue_permit]
   E --> F[Fossil evidence]
   CR --> F
   H --> F
@@ -30,5 +30,5 @@ flowchart LR
 
 ## Strands
 
-The clerk is a `strands.Agent` with four tools. Tools never move money except
-`execute_refund`, which can only run with a HIOP permit token.
+The clerk is a `strands.Agent` with four tools. Tools never issue a permit except
+`execute_issue_permit`, which can only run with a HIOP permit token.

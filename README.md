@@ -14,7 +14,7 @@ Customer Request → Strands Agent → Narwhal → Meerkat → CRUSHIA
   → PERMIT | DENY | PERMIT_WITH_APPROVAL
   → (approval is a fact, not a permit)
   → fresh CRUSHIA
-  → PERMIT → refund
+  → PERMIT → issue permit
   → Fossil evidence
 ```
 

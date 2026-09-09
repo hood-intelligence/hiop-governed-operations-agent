@@ -18,7 +18,7 @@ from strands.types.tools import ToolChoice, ToolSpec
 
 
 class DemoOpsModel(Model):
-    """Deterministic tool-calling model for the refund clerk demo."""
+    """Deterministic tool-calling model for the commercial-permit clerk demo."""
 
     def __init__(self):
         super().__init__()
@@ -131,6 +131,6 @@ class DemoOpsModel(Model):
                     "text": "CRUSHIA returned PERMIT_WITH_APPROVAL. Commercial building permit not issued. Waiting for building official, then a fresh CRUSHIA decision."
                 }
             if outcome == "DENY":
-                return None, {"text": "CRUSHIA DENY. No refund will be issued."}
+                return None, {"text": "CRUSHIA DENY. No permit will be issued."}
 
         return None, {"text": "HIOP governed run complete. Permission delta remains 0."}

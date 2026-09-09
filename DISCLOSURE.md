@@ -9,7 +9,7 @@ product UI, and **not** a second HIOP kernel or console.
 ## What is new (built during the submission period)
 
 - Strands Agents SDK operations clerk (`app/agent.py`)
-- Demo duplicate-charge ledger (`app/ledger.py`)
+- Demo commercial-permit registry (`app/ledger.py`)
 - FastAPI + operator UI (`app/main.py`, `app/static/index.html`)
 - Deterministic Strands model provider for offline demo (`app/demo_model.py`)
 - This contest packaging, architecture diagram, and tests
@@ -39,11 +39,11 @@ Source-of-truth references (local Hood tree, not this repo):
 - `HIOP-P1-SELECTION-GRADE-PRODUCT-RC1` `p1_pilot/execution_gate.py`
 
 `app/hiop_adapter.py` is a **new narrow adapter** implementing those published
-rules for this refund clerk. It is not a replacement HIOP platform.
+rules for this commercial building-permit clerk. It is not a replacement HIOP platform.
 
 ## What this demo does not claim
 
-- Not live card-network money movement
+- Not a live municipal permitting system or live card-network money movement
 - Not Amazon Bedrock AgentCore (optional; not configured in this package)
 - Not `production_certified`
 - Not a second Console or second HIOP
