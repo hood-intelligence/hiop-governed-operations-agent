@@ -41,6 +41,12 @@ Open http://127.0.0.1:8787
 **Live demo (Cloud Run, not AgentCore, not production):**  
 https://hiop-governed-operations-agent-483518734142.us-central1.run.app
 
+Rebuild that URL (optional, needs `gcloud` auth):
+
+```powershell
+.\scripts\deploy-cloud-run.ps1
+```
+
 ```bash
 .venv\Scripts\python -m pytest tests -q
 ```

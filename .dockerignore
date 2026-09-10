@@ -1,0 +1,13 @@
+.venv
+runtime
+runtime-tmp
+runtime-tmp-smoke
+tests
+_frames
+__pycache__
+*.pyc
+.git
+tools
+docs
+*.mp4
+.devpost*
