@@ -3,7 +3,7 @@
 **Hackathon:** https://agentsforhumans.devpost.com/  
 **Deadline:** 14 September 2026, 5:00pm PDT  
 **Track:** Professional Agents  
-**Builder ID:** add yours on the form (profile.aws.amazon.com)
+**Builder ID on form:** glittergates@hotmail.com (the email on profile.aws.amazon.com)
 
 Do **not** claim live city permitting, production certification, or AgentCore unless you added it.
 
@@ -76,7 +76,43 @@ Professional agents that change records need an authority gate, not a chatbot. T
 
 ## AWS Builder ID
 
-(your Builder ID — required)
+glittergates@hotmail.com
+
+(use the Builder ID string from profile.aws.amazon.com if it is not this email)
+
+## Live demo (additional-info page)
+
+https://hiop-governed-operations-agent-483518734142.us-central1.run.app
+
+## Testing instructions (additional-info page)
+
+Live demo (Cloud Run, not AgentCore, not a live city system):
+https://hiop-governed-operations-agent-483518734142.us-central1.run.app
+
+No login. Click the three sample buttons:
+
+1) $20 wall sign (OTC) → RUN STRANDS CLERK
+   Expect PERMIT and a permit number starting NH-SGN. Dispatched = true.
+
+2) $7,600 commercial building → RUN STRANDS CLERK
+   Expect PERMIT_WITH_APPROVAL. Permit is NOT issued.
+   Click BUILDING OFFICIAL APPROVES + FRESH PERMIT.
+   Expect a fresh PERMIT, then NH-BLD-…. Approval is a fact, not a permit.
+
+3) Wrong jurisdiction → RUN STRANDS CLERK
+   Expect DENY. Nothing issued.
+
+Local:
+python -m venv .venv
+.venv\Scripts\pip install -r requirements.txt
+.venv\Scripts\python -m uvicorn app.main:app --host 127.0.0.1 --port 8787
+.venv\Scripts\python -m pytest tests -q
+
+10 tests. production_certified = false.
+
+## Bonus blog URL
+
+Leave empty. No builder.aws.com post exists. Do not invent one.
 
 ## Additional info / disclosures
 
