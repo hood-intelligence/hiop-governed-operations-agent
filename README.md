@@ -38,6 +38,9 @@ python -m venv .venv
 
 Open http://127.0.0.1:8787
 
+**Live demo (Cloud Run, not AgentCore, not production):**  
+https://hiop-governed-operations-agent-483518734142.us-central1.run.app
+
 ```bash
 .venv\Scripts\python -m pytest tests -q
 ```

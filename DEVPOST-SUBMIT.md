@@ -37,8 +37,9 @@ https://github.com/hood-intelligence/hiop-governed-operations-agent
 
 ## Live demo (optional)
 
-http://127.0.0.1:8787 after `uvicorn app.main:app --host 127.0.0.1 --port 8787`  
-Hosted URL only if you deploy. Do not invent a URL.
+https://hiop-governed-operations-agent-483518734142.us-central1.run.app
+
+Cloud Run public URL. Same clerk UI as local. Not AgentCore. Not a live city system. `production_certified = false`.
 
 ## Text description (paste)
 
